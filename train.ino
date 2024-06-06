@@ -48,7 +48,7 @@ Adafruit_LiquidCrystal lcd(0);
 
 
 MCP23017 mcp = MCP23017(0x26);
-MCP23017 mcp = MCP23017(0x27);
+MCP23017 mcp2 = MCP23017(0x27);
 
  // TRAIN init
 #define DATAPIN 16
@@ -107,19 +107,19 @@ void setup() {
 
 //sign signal setup
   Wire.begin();
-  mcp.init();
-  mcp.writeRegister(MCP23017Register::IODIR_A, (unsigned char )0x00); // set IO direction to output
-  mcp.writeRegister(MCP23017Register::IODIR_B, (unsigned char )0x00);
-  mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-  mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+  mcp2.init();
+  mcp2.writeRegister(MCP23017Register::IODIR_A, (unsigned char )0x00); // set IO direction to output
+  mcp2.writeRegister(MCP23017Register::IODIR_B, (unsigned char )0x00);
+  mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+  mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
 }
 
 void loop() {
 
   LED_exp();
 
-  switch_loop_exp();
-  // signal_loop_exp();
+  // switch_loop_exp();
+  signal_loop_exp();
 }
 
 void signal_loop_exp()
@@ -129,77 +129,78 @@ void signal_loop_exp()
   for (idx=0; idx<16; idx++) {
   switch(idx) {
   case 0:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111110);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111110);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 1:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111101);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111101);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 2:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111011);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111011);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 3:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11110111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11110111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 4:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11101111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11101111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 5:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11011111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11011111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 6:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b10111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b10111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 7:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b01111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b01111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
   break;
   case 8:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111110);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111110);
   break;
   case 9:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111101);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111101);
   break;
   case 10:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111011);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111011);
   break;
   case 11:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11110111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11110111);
   break;
   case 12:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11101111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11101111);
   break;
   case 13:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11011111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11011111);
   break;
   case 14:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b10111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b10111111);
   break;
   case 15:
-    mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-    mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b01111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+    mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b01111111);
   break;
   default:
   break;
   }
   delay(250);
   }
-  mcp.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
-  mcp.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+  mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
+  mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
 }
+
 void LED_exp()
 {
  // LED loop
@@ -389,33 +390,5 @@ void changeSwitch4(bool inwards) {
   } else {
     DCC_send_command(DCCaddress_decoder, DCCswitch4, 1);
     Serial.println("STATUS: Switch 4 changed outward");
-  }
-}
-
-void DCC_send_command(uint address, uint inst, uint repeat_count) {
-  uint64_t command = 0x0000000000000000;
-  uint64_t temp_command = 0x0000000000000000;
-  uint64_t prefix = 0x3FFF;
-  uint error = 0x00;
-  error = address ^ inst;
-  command = (prefix << 28) | (address << 19) | (inst << 10) | ((error) << 1) | 0x01;
-  int i = 0;
-  while (i < repeat_count) {
-    temp_command = command;
-    for (int j = 0; j < 64; j++) {
-      if ((temp_command & 0x8000000000000000) == 0) { 
-        digitalWrite(DATAPIN, LOW);
-        delayMicroseconds(100);
-        digitalWrite(DATAPIN, HIGH);
-        delayMicroseconds(100);
-      } else {
-        digitalWrite(DATAPIN, LOW);
-        delayMicroseconds(58);
-        digitalWrite(DATAPIN, HIGH);
-        delayMicroseconds(58);
-      }
-      temp_command = temp_command << 1;
-    }
-    i++;
   }
 }
