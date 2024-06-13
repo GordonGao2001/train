@@ -116,12 +116,18 @@ void setup() {
 
 void loop() {
 
-  LED_exp();
-
+  // LED_exp();
+  // train_loop_exp();
   // switch_loop_exp();
-  signal_loop_exp();
+  // signal_loop_exp();
+  Decision_table();
+
 }
 
+void Decision_table()
+{
+  
+}
 void signal_loop_exp()
 {
   uint16_t idx;
