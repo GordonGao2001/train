@@ -67,6 +67,30 @@ const unsigned int DCCswitch4 = 0b10001000;
 
 const int switchwait = 1500;
 
+// system variable
+bool init_check = false;
+bool init_station_fr = false;
+bool init_station_neu = false;
+bool train_dir_counter_clock=true;
+
+struct _sens{
+  bool int_rup0 ;
+  int detector ;
+};
+//init train pos, 1 past d2 & next d4
+_sens train1_past_pos = {true, 0b11111011};
+_sens train1_next_pos = {true, 0b11101111};
+//init train pos, 3 past d12 & next d13
+_sens train3_past_pos = {false, 0b11101111};
+_sens train3_next_pos = {false, 0b11011111};
+bool switch_ready = false;
+
+bool sw1_inward = false;
+bool sw2_inward = false;
+bool sw3_inward = false;
+bool sw4_inward = false;
+
+bool loop1_occu = false;
 
 void setup() {
   // LED setup
@@ -74,12 +98,6 @@ void setup() {
   pinPeripheral(I2C_2_SDA_PIN, PIO_SERCOM_ALT);  //Assign SDA function
   pinPeripheral(I2C_2_SCL_PIN, PIO_SERCOM_ALT);  //Assign SCL function
 #endif
-  lcd.begin(16, 2);
-  lcd.clear();
-  lcd.print("Hello world!");
-  lcd.setCursor(0, 1);
-  lcd.print("Hi back!");
-
   Serial.begin(115200);
 
   // HALL-EFFECT setup
@@ -112,6 +130,16 @@ void setup() {
   mcp2.writeRegister(MCP23017Register::IODIR_B, (unsigned char )0x00);
   mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
   mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
+
+// aligh switches
+  delay(switchwait);
+  changeSwitch1(sw1_inward);
+  delay(switchwait);
+  changeSwitch2(sw2_inward);
+  delay(switchwait);
+  changeSwitch3(sw3_inward);
+  delay(switchwait);
+  changeSwitch4(sw4_inward);
 }
 
 void loop() {
@@ -120,13 +148,217 @@ void loop() {
   // train_loop_exp();
   // switch_loop_exp();
   // signal_loop_exp();
-  Decision_table();
-
+  // train_loop_exp();
+  if(!init_check){
+    Serial.println("Check not passed.");
+    starting_check();
+  }
+  else{
+    /*
+    Add a manual switch here?
+    */
+    Decision_table();
+  }
 }
 
+void starting_check()
+{
+    lcd.setBacklight(HIGH);
+    DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 0), 100);
+    delay(25);
+    DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 0), 100);
+    delay(25);
+    if(!init_station_fr)
+    {
+      lcd.begin(16, 2);
+      lcd.clear();
+      Serial.print("no train on Fred!\n");
+      lcd.print("Station FRED: No train.\n");
+    }else{
+      lcd.begin(16, 2);
+      lcd.clear();
+      lcd.print("Station FRED: Ready\n");}
+      Serial.print("Fred Train checked!\n");
+    if(!init_station_fr)
+    {
+      lcd.setCursor(0, 1);
+      lcd.print("Station NEU: No train\n");
+      Serial.print("No train on Neu!\n");
+    }else{
+      lcd.setCursor(0, 1);
+      lcd.print("NEU: Ready\n");
+      Serial.print("Neu Train checked!\n");
+      }
+    init_check = (init_station_fr)&(init_station_neu);
+    Serial.print(" Init_check is ");
+    Serial.println(init_check);
+    lcd.setBacklight(LOW);
+}
 void Decision_table()
 {
   
+  int train1_pos = where_is_train1(train1_past_pos, train1_next_pos);
+  int train3_pos = where_is_train3(train3_past_pos, train3_next_pos);
+  int table_case = train1_pos*100+train3_pos;
+  // DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 6), 100);
+  // delay(25);
+  // DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+  // delay(25);
+  switch(table_case)
+  {
+  // cases of impossible
+    case 101:
+    case 202:
+    case 303:
+    case 404:
+    case 505:
+    case 606:
+    case 707:
+      //system halt
+      digitalWrite(ENABLEPIN,LOW);
+      break;
+    default:
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 6), 100);
+      delay(20);
+      DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+      delay(20);
+      break;
+  }
+}
+//map sensdata to sensor location
+int detector_mapper(_sens sens_data)
+{
+  switch(sens_data.detector)
+  {
+    case 0b11111110:
+      return sens_data.int_rup0?0:8;
+      break;
+    case 0b11111101:
+      return sens_data.int_rup0?1:9;
+      break;
+    case 0b11111011:
+      return sens_data.int_rup0?2:10;
+      break;
+    case 0b11110111:
+      return sens_data.int_rup0?3:11;
+      break;
+    case 0b11101111:
+      return sens_data.int_rup0?4:12;
+      break;
+    case 0b11011111:
+      return sens_data.int_rup0?5:13;
+      break;
+    case 0b10111111:
+      return sens_data.int_rup0?6:21;
+      break;
+    case 0b1111111:
+      return sens_data.int_rup0?7:22;
+      break;
+    default: return 101;
+  }
+}
+// e.g. triain is between 10 and 12, so it is on part 1
+  // 10 is past, 12 is next
+  // 10*100+12 = 1012
+  // for revers maybe like case calculated with another formula
+int where_is_train1(_sens past, _sens next)
+{
+  bool reverse = false;
+  int my_case = reverse? 
+    detector_mapper(past)+detector_mapper(next)*1000:detector_mapper(past)*100+detector_mapper(next);
+  switch(my_case)
+  {
+    case 1012:
+      return 1;
+      break;
+    case 1213:
+      return 2;
+      break;
+    case 1300:
+      return 3;
+      break;
+    case 1:
+      return 4;
+      break;
+    case 122:
+      return 5;
+      break;
+    case 2202:
+      return 6;
+      break;
+    case 204:
+      return 7;
+      break;
+    case 406:
+      return 8;
+      break;
+    case 607:
+      return 9;
+      break;
+    case 708:
+      return 10;
+      break;
+    case 810:
+      return 11;
+      break;
+    default: 
+      return 101;
+      break;
+  }
+}
+int where_is_train3(_sens past, _sens next)
+{
+  bool reverse = false;
+  int my_case = reverse? 
+    detector_mapper(past)+detector_mapper(next)*1000:detector_mapper(past)*100+detector_mapper(next);
+  switch(my_case)
+  {
+    case 1112:
+      return 1;
+      break;
+    case 1213:
+      return 2;
+      break;
+    case 1300:
+      return 3;
+      break;
+    case 1:
+      return 4;
+      break;
+    case 122:
+      return 5;
+      break;
+    case 2202:
+      return 6;
+      break;
+    case 221:
+      return 7;
+      break;
+    case 2103:
+      return 8;
+      break;
+    case 309:
+      return 9;
+      break;
+    case 908:
+      return 10;
+      break;
+    case 807:
+      return 11;
+      break;
+    case 706:
+      return 12;
+      break;
+    case 605:
+      return 13;
+      break;
+    case 511:
+      return 14;
+      break;
+    default: 
+      return 101;
+      break;
+  }
 }
 void signal_loop_exp()
 {
@@ -229,7 +461,7 @@ void hall_effect_loop_exp()
 void train_loop_exp()
 {
    // TRAIN loop
-  DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 9), 100);
+  DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
   delay(25);
   DCC_send_command(DCCaddress_train2, trainInstruction(true, true, 7), 100);
   delay(25);
@@ -289,29 +521,226 @@ void init_interrupts() {
 }
 
 void on_int0_change() {
-   // In your code, you might want to move this logic out of the interrupt routine
-   // (for instance, by setting a flag and checking this flag in your main-loop)
-   // This will prevent overhead.
-   delayMicroseconds(2000);
-   int sensor_data = mcp.readRegister(MCP23017Register::INTCAP_A);
-   // The only thing we do with the interrupt signal is printing it
-   Serial.println("int0:");
-   Serial.print(sensor_data, BIN);
-   Serial.println();
+    // In your code, you might want to move this logic out of the interrupt routine
+    // (for instance, by setting a flag and checking this flag in your main-loop)
+    // This will prevent overhead.
+    delayMicroseconds(2000);
+    int  int0_sensor_data = mcp.readRegister(MCP23017Register::INTCAP_A);
+    // The only thing we do with the interrupt signal is printing it
+    //init station check
+    if(sensor_data == 0b11111011)
+    {
+      Serial.println("D2 init checked");
+      init_station_fr = true;
+    }
+    UpdatePos(int0_sensor_data);
+    Serial.println("int0:");
+    Serial.print(int0_sensor_data, BIN);
+    Serial.println();
 }
 
 void on_int1_change() {
-   // In your code, you might want to move this logic out of the interrupt routine
-   // (for instance, by setting a flag and checking this flag in your main-loop)
-   // This will prevent overhead.
-   delayMicroseconds(2000);
-   int sensor_data = mcp.readRegister(MCP23017Register::INTCAP_B);
-   // The only thing we do with the interrupt signal is printing it
-   Serial.println("int1:");
-   Serial.print(sensor_data, BIN);
-   Serial.println();
+    // In your code, you might want to move this logic out of the interrupt routine
+    // (for instance, by setting a flag and checking this flag in your main-loop)
+    // This will prevent overhead.
+    delayMicroseconds(2000);
+    int int1_sensor_data = mcp.readRegister(MCP23017Register::INTCAP_B);
+    //init staion check
+    if(sensor_data == 0b11101111)
+    {
+      Serial.println("D12 init checked");
+      init_station_neu = true;
+    }
+    UpdatePos(int1_sensor_data);
+    // The only thing we do with the interrupt signal is printing it
+    Serial.println("int1:");
+    Serial.print(int1_sensor_data, BIN);
+    Serial.println();
 }
+void UpdatePos( int sens_data)
+{
+  if(sens_data==train1_next_pos.detector)
+  {Update_train1();}
+  else if(sens_data==train3_next_pos.detector)
+  {Update_train3();}
+}
+void Update_train1()
+{
+  train1_past_pos = train1_next_pos;
 
+  train1_past_pos = train1_next_pos;
+  _sens temp1;
+  _sens temp2;
+  switch(train1_past_pos.detector)
+  {
+    //d10
+    case 0b11111011:
+      if(!train1_past_pos.int_rup0)
+      {  temp1 ={false, 0b11101111};
+        temp2={false, 0b11111110};
+        train1_next_pos = train_dir_counter_clock?temp1:temp2;
+
+      }else
+      {
+        temp1={true, 0b11101111};
+        temp2={false, 0b1111111};
+        train1_next_pos = train_dir_counter_clock?temp1:temp2;
+      }
+    break;
+    //d12
+    case 0b11101111:
+    if(!train1_past_pos.int_rup0)
+      {temp1={false, 0b11011111};
+      temp2={false, 0b11111011};
+      train1_next_pos = train_dir_counter_clock?temp1:temp2;}
+      else{
+        temp1={true, 0b10111111};
+        temp2={true, 0b11111011};
+        train1_next_pos = train_dir_counter_clock?temp1:temp2;
+      }
+    break;
+    //d13
+    case 0b11011111:
+      temp1={true, 0b11111110};
+      temp2={false, 0b11101111};
+      train1_next_pos = train_dir_counter_clock?temp1:temp2;
+    break;
+    //d0
+    case 0b11111110:
+    if(train1_past_pos.int_rup0){
+      
+      temp1={true, 0b11111101};
+      temp2={false, 0b11011111};
+      train1_next_pos = train_dir_counter_clock?temp1:temp2;
+    }
+    else{
+      temp1={false, 0b11111011};
+      temp2={true, 0b1111111};
+      train1_next_pos = train_dir_counter_clock?temp1:temp2;
+    }
+    break;
+    //d1
+    case 0b11111101:
+      temp1={false, 0b1111111};
+      temp2={true, 0b11111110};
+      train1_next_pos = train_dir_counter_clock?temp1:temp2;
+    break;
+    //d22
+    case 0b1111111:
+      if(!train1_past_pos.int_rup0)
+      {
+        temp1={true, 0b11111011};
+        temp2={true, 0b11111101};
+        train1_next_pos = train_dir_counter_clock?temp1:temp2;
+      }
+      else{
+        temp1={false,0b11111110};
+        temp2={true, 0b10111111};
+        train1_next_pos = train_dir_counter_clock?temp1:temp2;
+      }
+    break;
+    case 0b10111111:
+      temp1={true, 0b1111111};
+      temp2={true, 0b11101111};
+      train1_next_pos = train_dir_counter_clock?temp1:temp2;
+    break;
+  }
+}
+void Update_train3()
+{
+  train3_past_pos = train3_next_pos;
+  _sens temp;
+  _sens temp1;
+  switch(train3_past_pos.detector){
+    case 0b11110111:
+      //3
+      if(train3_past_pos.int_rup0){
+        temp = {false, 0b11111101};
+        temp1 = {false, 0b10111111};
+      }else{
+        //d11
+        temp = {false, 0b11101111};
+        temp1 = {true, 0b11011111};
+      }
+      train3_next_pos = train_dir_counter_clock?temp:temp1;
+      break;
+  // d12
+    case 0b11101111:
+	      temp = {false, 0b11011111};
+	      temp1 = {false, 0b11110111};
+        train3_next_pos = train_dir_counter_clock?temp:temp1;
+      break;
+    case 0b11011111:
+      if(train3_past_pos.int_rup0)
+      //d5
+      {
+        temp = {false, 0b11110111};
+        temp1 = {true, 0b10111111};
+      }else{
+        //d13
+        temp = {true, 0b11111110};
+        temp1 = {false, 0b11101111};
+      }
+      train3_next_pos = train_dir_counter_clock?temp:temp1;
+    break;
+    case 0b11111110:
+    if(train3_past_pos.int_rup0){
+      //d0
+      temp = {true, 0b11111101};
+      temp1 = {false, 0b11011111};
+    }else{
+      //d8
+      temp = {true, 0b1111111};
+      temp1 = {false, 0b11111101};
+    }
+    train3_next_pos = train_dir_counter_clock?temp:temp1;
+    break;
+	// d1
+    case 0b11111101:
+    if(train3_past_pos.int_rup0){
+      temp = {false, 0b1111111};
+      temp1 = {true, 0b11111110};
+    }else{
+      //d9
+      temp = {false, 0b11111110};
+      temp1 = {true, 0b11110111};
+    }
+    train3_next_pos = train_dir_counter_clock?temp:temp1;
+    break;
+	// d22
+    case 0b1111111:
+    if(!train3_past_pos.int_rup0){
+      temp = {true, 0b11111011};
+      temp1 = {true, 0b11111101};
+    }else{
+      //d7
+      temp = {true, 0b10111111};
+      temp1 = {false, 0b11111110};
+    }
+    train3_next_pos = train_dir_counter_clock?temp:temp1;
+    break;
+	// d2
+    case 0b11111011:
+      temp1 = {false, 0b1111111};
+      temp = {false, 0b10111111};
+      train3_next_pos = train_dir_counter_clock?temp:temp1;
+    break;
+  //d6
+  case 0b10111111:
+    if(train3_past_pos.int_rup0)
+    {
+      temp = {true, 0b11011111};
+      temp1 = {true, 0b1111111};
+    }else{
+      //d21
+      temp = {true, 0b11110111};
+      temp1 = {true, 0b11111011};
+    }
+    train3_next_pos = train_dir_counter_clock?temp:temp1;
+  break;
+  default: train3_next_pos = {false,101};
+  }
+}
 // TRAIN functions
 unsigned int trainInstruction(bool direction, bool light, int speed) {
   unsigned int result = 0x40;  //0100 0000
@@ -323,6 +752,18 @@ unsigned int trainInstruction(bool direction, bool light, int speed) {
   }
   if (speed > 0 && speed < 15) {
     result += speed + 1;
+  }
+  return result;
+}
+
+unsigned int trainInstruction_stop(bool estop, bool light, int speed) {
+  unsigned int result = 0x40;  //0100 0000
+  
+  if (light) {
+    result += 0x10;  //0001 0000
+  }
+  if(estop){
+    result += 1;
   }
   return result;
 }
