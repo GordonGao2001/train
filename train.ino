@@ -77,20 +77,32 @@ struct _sens{
   bool int_rup0 ;
   int detector ;
 };
-//init train pos, 1 past d2 & next d4
-_sens train1_past_pos = {true, 0b11111011};
-_sens train1_next_pos = {true, 0b11101111};
-//init train pos, 3 past d12 & next d13
-_sens train3_past_pos = {false, 0b11101111};
-_sens train3_next_pos = {false, 0b11011111};
-bool switch_ready = false;
+//init train pos, 1 past d12 & next d13
+_sens train1_past_pos = {false, 0b11101111};
+_sens train1_next_pos = {false, 0b11011111};
+//init train pos, 3 past d2 & next d21
+_sens train3_past_pos = {true, 0b11111011};
+_sens train3_next_pos = {false, 0b10111111};
+
+bool switch_ready = false;//initial switch repostion
 
 bool sw1_inward = false;
 bool sw2_inward = false;
 bool sw3_inward = false;
 bool sw4_inward = false;
 
-bool loop1_occu = false;
+
+bool switch1_hot = false;
+bool switch2_hot = false;
+bool sw14_lock = false;
+bool sw13_lock = false;
+bool sw23_lock = false;
+bool sw24_lock = false;
+
+bool loop_occ = false;
+
+unsigned long switch_delay_start = 0;
+unsigned long switch_delay_end = 0;
 
 void setup() {
   // LED setup
@@ -131,67 +143,72 @@ void setup() {
   mcp2.writeRegister(MCP23017Register::OLAT_A, (unsigned char )0b11111111);
   mcp2.writeRegister(MCP23017Register::OLAT_B, (unsigned char )0b11111111);
 
-// aligh switches
-  delay(switchwait);
-  changeSwitch1(sw1_inward);
-  delay(switchwait);
-  changeSwitch2(sw2_inward);
-  delay(switchwait);
-  changeSwitch3(sw3_inward);
-  delay(switchwait);
-  changeSwitch4(sw4_inward);
 }
 
 void loop() {
-
-  // LED_exp();
-  // train_loop_exp();
-  // switch_loop_exp();
-  // signal_loop_exp();
-  // train_loop_exp();
   if(!init_check){
-    Serial.println("Check not passed.");
+    Serial.println("init check not passed!");
     starting_check();
+    Serial.print("\t neu status:");
+    Serial.print(init_station_neu);
+    Serial.print("fred status:");
+    Serial.print(init_station_fr);
+    Serial.println();
   }
   else{
     /*
     Add a manual switch here?
     */
+    Serial.println("init check passed!");
+    // if(!switch_ready){
+    //   Switches_reset();
+    //   switch_ready = true;
+    // }
     Decision_table();
   }
 }
-
+void Switches_reset()
+{
+  delay(switchwait);
+  changeSwitch1(false);
+  delay(switchwait);
+  changeSwitch2(false);
+  delay(switchwait);
+  changeSwitch3(false);
+  delay(switchwait);
+  changeSwitch4(false);
+  switch_ready=true;
+}
 void starting_check()
 {
     lcd.setBacklight(HIGH);
     DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 0), 100);
-    delay(25);
+    delay(20);
     DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 0), 100);
-    delay(25);
+    delay(20);
+    
     if(!init_station_fr)
     {
       lcd.begin(16, 2);
       lcd.clear();
-      Serial.print("no train on Fred!\n");
-      lcd.print("Station FRED: No train.\n");
+      //Serial.print("no train on Fred!\n");
+      lcd.print("FRED: No\n");
     }else{
       lcd.begin(16, 2);
       lcd.clear();
-      lcd.print("Station FRED: Ready\n");}
-      Serial.print("Fred Train checked!\n");
-    if(!init_station_fr)
+      lcd.print("FRED: Ready\n");}
+      //Serial.print("Fred Train checked!\n");
+    if(!init_station_neu)
     {
       lcd.setCursor(0, 1);
-      lcd.print("Station NEU: No train\n");
-      Serial.print("No train on Neu!\n");
+      lcd.print("NEU: No\n");
+      //Serial.print("No train on Neu!\n");
     }else{
       lcd.setCursor(0, 1);
       lcd.print("NEU: Ready\n");
-      Serial.print("Neu Train checked!\n");
+      //Serial.print("Neu Train checked!\n");
       }
     init_check = (init_station_fr)&(init_station_neu);
-    Serial.print(" Init_check is ");
-    Serial.println(init_check);
     lcd.setBacklight(LOW);
 }
 void Decision_table()
@@ -199,6 +216,10 @@ void Decision_table()
   
   int train1_pos = where_is_train1(train1_past_pos, train1_next_pos);
   int train3_pos = where_is_train3(train3_past_pos, train3_next_pos);
+  Serial.print("\n train1_pos:");
+  Serial.print(train1_pos);
+  Serial.print("\t train3_pos:");
+  Serial.print(train3_pos);
   int table_case = train1_pos*100+train3_pos;
   // DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 6), 100);
   // delay(25);
@@ -206,7 +227,15 @@ void Decision_table()
   // delay(25);
   switch(table_case)
   {
-  // cases of impossible
+    // cases of impossible
+    // system halt, restartable
+    case 108:
+    case 109:
+    case 110:
+    case 111:
+    case 112:
+    case 113:
+    case 114:
     case 101:
     case 202:
     case 303:
@@ -214,17 +243,345 @@ void Decision_table()
     case 505:
     case 606:
     case 707:
-      //system halt
+    case 801:
+    case 901:
+    case 1001:
+    case 1101:
+    case 1201:
+    case 808:
+    case 809:
+    case 810:
+    case 811:
+    case 812:
+    case 813:
+    case 814:
+    case 908:
+    case 909:
+    case 910:
+    case 911:
+    case 912:
+    case 913:
+    case 914:
+    case 1008:
+    case 1009:
+    case 1010:
+    case 1011:
+    case 1012:
+    case 1013:
+    case 1014:
+    case 1108:
+    case 1109:
+    case 1110:
+    case 1111:
+    case 1112:
+    case 1113:
+    case 1114:
+    case 1208:
+    case 1209:
+    case 1210:
+    case 1211:
+    case 1212:
+    case 1213:
+    case 1214:
       digitalWrite(ENABLEPIN,LOW);
+      Serial.println("\t System Halted");
+      // todo: implement restart
       break;
-    default:
-      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 6), 100);
+    //case of consecutive
+      // train 1 at front
+    case 201:
+    case 302:
+    case 403:
+    case 504:
+    case 605:
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
+      delay(20);
+      DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 0), 100);
+      delay(20);
+      break;
+    case 706:
+      if(sw23_lock_true)
+      {
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train3,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }else
+      {
+        changeSwitch2(false);
+        changeSwitch3(false);
+        sw23_lock_true = true;
+        sw24_lock_true = true;
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train3,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }
+    //train 3 at front
+    case 102:
+    case 203:
+    case 304:
+    case 405:
+    case 506:
+      DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+      delay(20);
+      DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 0), 100);
+      delay(20);
+      break;
+    case 607:
+      //todo same as 706
+      if(sw24_lock_true)
+      {
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }else
+      {
+        changeSwitch2(false);
+        changeSwitch4(false);
+        sw23_lock_true = true;
+        sw24_lock_true = true;
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train3,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }
+      break;
+    //case of WFS: COL 7th
+    case 701:
+      DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+      delay(20);
+      DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+      delay(20);
+    case 702:
+    case 703:
+    case 704:
+    case 705:
+      if(sw24_lock_true){
+        sw24_lock_true = false;
+        sw23_lock_true = false;
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }else{
+        if(!sw23_lock_true){
+        changeSwitch2(true);
+        changeSwitch3(true);
+        sw23_lock_true = true;
+        }
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
+        delay(20);
+      }
+      break;
+    case 708:
+    case 709:
+    case 710:
+    case 711:
+    case 712:
+    case 713:
+    case 714:
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+        break;
+    case 1202:
+    case 1203:
+    case 1204:
+    case 1205:
+    case 1206:
+      if(sw14_lock_true)
+      {
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
+        delay(20);
+      }else{
+        changeSwitch1(false);
+        changeSwitch4(false);
+        sw14_lock_true = true;
+        sw24_lock_true = true;
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }
+      break;
+    case 1207:
+      if(sw14_lock_true)
+      {
+        DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
+        delay(20);
+      }else{
+        changeSwitch1(false);
+        changeSwitch4(false);
+        sw14_lock_true = true;
+        DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+        delay(20);
+      }
+      break;
+    case 107:
+        DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+        delay(20);
+      break;
+    case 207:
+    case 307:
+    case 407:
+    case 507:
+        if(sw24_lock_true){
+          DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+          delay(20);
+          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+          delay(20);
+        }else{
+          changeSwitch2(true);
+          changeSwitch4(true);
+          sw24_lock_true = true;
+          DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+          delay(20);
+          DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+          delay(20);
+        }
+    case 807:
+    case 907:
+    case 1007:
+    case 1107:
+    case 1207:
+      if(sw14_lock_true{
+        DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+        delay(20);
+      }else{
+        changeSwitch1(false);
+        changeSwitch4(false);
+        sw14_lock_true = true;
+        DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+      }
+      break;
+    case 213:
+    case 313:
+    case 413:
+    case 513:
+    case 613:
+      if(sw13_lock_true)
+      {
+        DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+      }else{
+        changeSwitch1(true);
+        changeSwitch3(true);
+        sw13_lock_true = true;
+        sw14_lock_true = true;
+        DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
+        delay(20);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+        delay(20);
+      }
+      break;
+    //1 cases
+    case 103:
+    case 104:
+    case 105:
+    case 106:
+    case 204:
+    case 205:
+    case 206:
+    case 208:
+    case 209:
+    case 210:
+    case 211:
+    case 212:
+    case 214:
+    case 301:
+    case 305:
+    case 306:
+    case 308:
+    case 309:
+    case 310:
+    case 311:
+    case 312:
+    case 314:
+    case 401:
+    case 402:
+    case 406:
+    case 408:
+    case 409:
+    case 410:
+    case 411:
+    case 412:
+    case 414:
+    case 501:
+    case 502:
+    case 503:
+    case 508:
+    case 509:
+    case 510:
+    case 511:
+    case 512:
+    case 514:
+    case 601:
+    case 602:
+    case 603:
+    case 604:
+    case 608:
+    case 609:
+    case 610:
+    case 611:
+    case 612:
+    case 614:
+    case 802:
+    case 803:
+    case 804:
+    case 805:
+    case 806:
+    case 902:
+    case 903:
+    case 904:
+    case 905:
+    case 906:
+    case 1002:
+    case 1003:
+    case 1004:
+    case 1005:
+    case 1006:
+    case 1102:
+    case 1103:
+    case 1104:
+    case 1105:
+    case 1106:
+      Serial.print("\t case 1.\n");
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
       delay(20);
       DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
       delay(20);
       break;
+      
+
+    // Abnormal cases
+    default:
+      digitalWrite(ENABLEPIN,LOW);
+      Serial.println("\t System Halted");
+      break;
   }
 }
+
+
 //map sensdata to sensor location
 int detector_mapper(_sens sens_data)
 {
@@ -257,6 +614,18 @@ int detector_mapper(_sens sens_data)
     default: return 101;
   }
 }
+void Trains_delay(int milisec)
+{
+  int repeats=milisec%40+1;
+  while(repeats>0)
+  {
+    DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 0), 100);
+    delay(20);
+    DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 0), 100);
+    delay(20);
+    repeats = repeats-1;
+  }
+}
 // e.g. triain is between 10 and 12, so it is on part 1
   // 10 is past, 12 is next
   // 10*100+12 = 1012
@@ -286,26 +655,29 @@ int where_is_train1(_sens past, _sens next)
     case 2202:
       return 6;
       break;
-    case 204:
+    case 221:
       return 7;
       break;
-    case 406:
+    case 2104:
       return 8;
-      break;
-    case 607:
+    case 406:
       return 9;
       break;
-    case 708:
+    case 607:
       return 10;
       break;
-    case 810:
+    case 708:
       return 11;
+      break;
+    case 810:
+      return 12;
       break;
     default: 
       return 101;
       break;
   }
 }
+
 int where_is_train3(_sens past, _sens next)
 {
   bool reverse = false;
@@ -528,12 +900,17 @@ void on_int0_change() {
     int  int0_sensor_data = mcp.readRegister(MCP23017Register::INTCAP_A);
     // The only thing we do with the interrupt signal is printing it
     //init station check
-    if(sensor_data == 0b11111011)
+    if(int0_sensor_data == 0b11111011)
     {
-      Serial.println("D2 init checked");
-      init_station_fr = true;
+      init_station_neu = true;
     }
+    if(init_check)
+    { 
     UpdatePos(int0_sensor_data);
+    Serial.print("\t train1 next pos=\t");
+    Serial.print(train1_next_pos.detector, BIN);
+    Serial.println();
+    }
     Serial.println("int0:");
     Serial.print(int0_sensor_data, BIN);
     Serial.println();
@@ -546,28 +923,39 @@ void on_int1_change() {
     delayMicroseconds(2000);
     int int1_sensor_data = mcp.readRegister(MCP23017Register::INTCAP_B);
     //init staion check
-    if(sensor_data == 0b11101111)
+    if(int1_sensor_data == 0b11101111)
     {
-      Serial.println("D12 init checked");
-      init_station_neu = true;
+      init_station_fr = true;
     }
-    UpdatePos(int1_sensor_data);
+    if(init_check)
+    {  UpdatePos(int1_sensor_data);
+      Serial.print("\t train1 next pos=\t");
+      Serial.print(train1_next_pos.detector, BIN);
+      Serial.println();
+    }
     // The only thing we do with the interrupt signal is printing it
-    Serial.println("int1:");
+    Serial.print("\n int1: \t");
     Serial.print(int1_sensor_data, BIN);
     Serial.println();
 }
-void UpdatePos( int sens_data)
+void UpdatePos(int sens_data,bool int_rup0)
 {
-  if(sens_data==train1_next_pos.detector)
-  {Update_train1();}
-  else if(sens_data==train3_next_pos.detector)
+  if( !(int_rup0 ^ train1_next_pos.int_rup0) && sens_data==train1_next_pos.detector)
+  {
+    Update_train1();
+  }
+  else if(!(int_rup0 ^ train3_next_pos.int_rup0)&&sens_data==train3_next_pos.detector)
   {Update_train3();}
+  else{
+    Serial.print("Undefined sensor input detected, quitting!\n");
+    // TODO test this one
+    // digitalWrite(ENABLEPIN,LOW);
+    // Serial.println("\t System Halted");
+  }
 }
+
 void Update_train1()
 {
-  train1_past_pos = train1_next_pos;
-
   train1_past_pos = train1_next_pos;
   _sens temp1;
   _sens temp2;
@@ -582,8 +970,9 @@ void Update_train1()
 
       }else
       {
-        temp1={true, 0b11101111};
-        temp2={false, 0b1111111};
+        //d2
+        temp1 = {false,0b10111111};
+        temp2 = {false, 0b1111111};
         train1_next_pos = train_dir_counter_clock?temp1:temp2;
       }
     break;
@@ -640,12 +1029,19 @@ void Update_train1()
       }
     break;
     case 0b10111111:
-      temp1={true, 0b1111111};
-      temp2={true, 0b11101111};
+    if(!train1_past_pos.int_rup0)
+      {
+      temp1={true, 0b11101111};
+      temp2={true, 0b11111011};
+      }else{
+        temp1 ={true,0b1111111};
+        temp2 = {true,0b11101111};
+      }
       train1_next_pos = train_dir_counter_clock?temp1:temp2;
     break;
   }
 }
+
 void Update_train3()
 {
   train3_past_pos = train3_next_pos;
