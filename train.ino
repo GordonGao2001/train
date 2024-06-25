@@ -345,8 +345,8 @@ void Decision_table()
         delay(20);
       }else
       {
-        changeSwitch2(false);
-        changeSwitch4(false);
+        changeSwitch2(true);
+        changeSwitch4(true);
         sw24_lock_true = true;
         DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
         delay(20);
@@ -374,8 +374,8 @@ void Decision_table()
         DCC_send_command(DCCaddress_train3,  trainInstruction(true, true, 0), 100);
         delay(20);
       }else{
-        changeSwitch2(true);
-        changeSwitch3(true);
+        changeSwitch2(false);
+        changeSwitch3(false);
         sw23_lock_true = true;
         DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
         delay(20);
@@ -437,18 +437,18 @@ void Decision_table()
     case 407:
     case 507:
         Serial.println("\t case 207~507\t");
-        if(sw23_lock_true){
+        if(sw24_lock_true){
           DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
           delay(20);
-          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
           delay(20);
         }else{
-          changeSwitch2(false);
-          changeSwitch3(false);
-          sw23_lock_true = true;
+          changeSwitch2(true);
+          changeSwitch4(true);
+          sw24_lock_true = true;
           DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
           delay(20);
-          DCC_send_command(DCCaddress_train1,  trainInstruction_stop(true, true, 0), 100);
+          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
           delay(20);
         }
         break;
@@ -456,8 +456,8 @@ void Decision_table()
     case 1007:
     case 1107:
       sw23_lock_true = false;
-      Serial.println("\t case 807~1107 \t");
-      DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 5), 100);
+      Serial.println("\t case 907~1107 \t");
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
       delay(20);
       DCC_send_command(DCCaddress_train3,  trainInstruction_stop(true, true, 0), 100);
       delay(20);
@@ -467,7 +467,7 @@ void Decision_table()
       if(sw14_lock_true){
         DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
         delay(20);
       }else{
         changeSwitch1(false);
@@ -489,16 +489,15 @@ void Decision_table()
       {
         DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1, trainInstruction_stop(true, true, 5), 100);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
         delay(20);
       }else{
         changeSwitch1(true);
         changeSwitch3(true);
         sw13_lock_true = true;
-        sw14_lock_true = true;
         DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
         delay(20);
       }
       break;
