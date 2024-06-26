@@ -286,6 +286,10 @@ void Decision_table()
       digitalWrite(ENABLEPIN,LOW);
       Serial.println("\t System Halted");
       delay(1000);
+      lcd.begin(16, 2);
+      lcd.clear();
+      //Serial.print("no train on Fred!\n");
+      lcd.print("Error: 101");
       // todo: implement restart
       break;
     //case of consecutive
@@ -586,6 +590,10 @@ void Decision_table()
     default:
       digitalWrite(ENABLEPIN,LOW);
       Serial.println("\t System Halted");
+      lcd.begin(16, 2);
+      lcd.clear();
+      //Serial.print("no train on Fred!\n");
+      lcd.print("Error 102");
       break;
   }
 }
@@ -958,8 +966,11 @@ void UpdatePos(int sens_data,bool int_rup0)
   else{
     Serial.print("Undefined sensor input detected, quitting!\n");
     // TODO test this one
-    // digitalWrite(ENABLEPIN,LOW);
-    // Serial.println("\t System Halted");
+    digitalWrite(ENABLEPIN,LOW);
+    Serial.println("\t System Halted");
+    lcd.begin(16, 2);
+    lcd.clear();
+    lcd.print("Error: 100");
   }
 }
 
