@@ -301,7 +301,7 @@ void Decision_table()
     case 605:
     case 807:
       Serial.println("\n case 201~807\t");
-      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
       delay(20);
       DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 0), 100);
       delay(20);
@@ -310,7 +310,7 @@ void Decision_table()
       Serial.println("\n case 706 \t");
       if(sw23_lock_true)
       {
-        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
         delay(20);
         DCC_send_command(DCCaddress_train3,  trainInstruction_stop(true, true, 0), 100);
         delay(20);
@@ -373,7 +373,7 @@ void Decision_table()
     case 705:
       Serial.println("\t case 702~705 \t");
       if(sw23_lock_true){
-        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
         delay(20);
         DCC_send_command(DCCaddress_train3,  trainInstruction(true, true, 0), 100);
         delay(20);
@@ -416,7 +416,7 @@ void Decision_table()
       {
         DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
         delay(20);
       }else{
         changeSwitch1(false);
@@ -444,7 +444,7 @@ void Decision_table()
         if(sw24_lock_true){
           DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
           delay(20);
-          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
+          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
           delay(20);
         }else{
           changeSwitch2(true);
@@ -452,7 +452,7 @@ void Decision_table()
           sw24_lock_true = true;
           DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
           delay(20);
-          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
+          DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
           delay(20);
         }
         break;
@@ -461,7 +461,7 @@ void Decision_table()
     case 1107:
       sw23_lock_true = false;
       Serial.println("\t case 907~1107 \t");
-      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
       delay(20);
       DCC_send_command(DCCaddress_train3,  trainInstruction_stop(true, true, 0), 100);
       delay(20);
@@ -471,7 +471,7 @@ void Decision_table()
       if(sw14_lock_true){
         DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
         delay(20);
       }else{
         changeSwitch1(false);
@@ -493,7 +493,7 @@ void Decision_table()
       {
         DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+        DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
         delay(20);
       }else{
         changeSwitch1(true);
@@ -501,7 +501,7 @@ void Decision_table()
         sw13_lock_true = true;
         DCC_send_command(DCCaddress_train3, trainInstruction_stop(true, true, 5), 100);
         delay(20);
-        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 8), 100);
+        DCC_send_command(DCCaddress_train1,  trainInstruction(true, true, 5), 100);
         delay(20);
       }
       break;
@@ -581,7 +581,7 @@ void Decision_table()
       sw23_lock_true = false;
       sw24_lock_true = false;
       Serial.print("\t case 1.\n");
-      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 8), 100);
+      DCC_send_command(DCCaddress_train1, trainInstruction(true, true, 5), 100);
       delay(20);
       DCC_send_command(DCCaddress_train3, trainInstruction(true, true, 5), 100);
       delay(20);
@@ -921,13 +921,7 @@ void on_int0_change() {
     {
       init_station_neu = true;
     }
-    if(init_check)
-    { 
     UpdatePos(int0_sensor_data,true);
-    Serial.print("\t train1 next pos=\t");
-    Serial.print(train1_next_pos.detector, BIN);
-    Serial.println();
-    }
     Serial.println("int0:");
     Serial.print(int0_sensor_data, BIN);
     Serial.println();
@@ -944,12 +938,7 @@ void on_int1_change() {
     {
       init_station_fr = true;
     }
-    if(init_check)
-    {  UpdatePos(int1_sensor_data,false);
-      Serial.print("\t train1 next pos=\t");
-      Serial.print(train1_next_pos.detector, BIN);
-      Serial.println();
-    }
+    UpdatePos(int1_sensor_data,false);
     // The only thing we do with the interrupt signal is printing it
     Serial.print("\n int1: \t");
     Serial.print(int1_sensor_data, BIN);
@@ -964,13 +953,40 @@ void UpdatePos(int sens_data,bool int_rup0)
   else if(!(int_rup0 ^ train3_next_pos.int_rup0)&&sens_data==train3_next_pos.detector)
   {Update_train3();}
   else{
-    Serial.print("Undefined sensor input detected, quitting!\n");
+    if(!(sens_data==train1_past_pos.detector || sens_data==train3_past_pos.detector)){
+    Serial.print("Undefined sensor input detected!\n");
+    Serial.print("int0:");
+    Serial.print(int_rup0);
+    Serial.print("\t");
+    Serial.print("sensor id:");
+    Serial.print(sens_data, BIN);
+    Serial.println();
+    Serial.print("Expected sensor: tr1 past int0:");
+    Serial.print(train1_past_pos.int_rup0);
+    Serial.print("\t tr1 next detector:");
+    Serial.print(train1_past_pos.detector, BIN);
+    Serial.print("\n tr3 next int0:");
+    Serial.print(train3_past_pos.int_rup0);
+    Serial.print("\t tr3 next detector:");
+    Serial.print(train3_past_pos.detector, BIN);
+    Serial.println();
+    Serial.print("Expected sensor: tr1 next int0:");
+    Serial.print(train1_next_pos.int_rup0);
+    Serial.print("\t tr1 next detector:");
+    Serial.print(train1_next_pos.detector, BIN);
+    Serial.print("\n tr3 next int0:");
+    Serial.print(train3_next_pos.int_rup0);
+    Serial.print("\t tr3 next detector:");
+    Serial.print(train3_next_pos.detector, BIN);
+    Serial.println();
+
     // TODO test this one
     digitalWrite(ENABLEPIN,LOW);
-    Serial.println("\t System Halted");
+    Serial.println("System Halted");
     lcd.begin(16, 2);
     lcd.clear();
     lcd.print("Error: 100");
+    }
   }
 }
 
